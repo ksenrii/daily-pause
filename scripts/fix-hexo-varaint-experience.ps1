@@ -42,14 +42,19 @@ New-Item -ItemType Directory -Force -Path $hexoScripts | Out-Null
 $headerPath = Join-Path $themeRoot "layout\_partial\header.ejs"
 $bannerPath = Join-Path $themeRoot "layout\_partial\banner.ejs"
 $footerPath = Join-Path $themeRoot "layout\_partial\footer.ejs"
+$articlePath = Join-Path $themeRoot "layout\_partial\article.ejs"
 $scriptPath = Join-Path $themeRoot "source\js\script.js"
 $bannerDir = Join-Path $themeRoot "source\banner"
+$themeConfigPath = Join-Path $themeRoot "_config.yml"
+$siteThemeConfigPath = Join-Path $blogRootResolved "_config.varaint.yml"
 
 Assert-UnderPath $headerPath $themeRoot | Out-Null
 Assert-UnderPath $bannerPath $themeRoot | Out-Null
 Assert-UnderPath $footerPath $themeRoot | Out-Null
+Assert-UnderPath $articlePath $themeRoot | Out-Null
 Assert-UnderPath $scriptPath $themeRoot | Out-Null
 Assert-UnderPath $bannerDir $themeRoot | Out-Null
+Assert-UnderPath $themeConfigPath $themeRoot | Out-Null
 
 $headerContent = @'
 <header>
@@ -79,6 +84,105 @@ $bannerContent = @'
 '@
 Set-FileUtf8 $bannerPath $bannerContent
 
+$varaintConfig = @'
+favicon: /favicon.png
+
+headimg: /images/avatar.gif
+name: ksenrii
+description: 信息安全学习笔记
+
+search:
+  enable: true
+  placeholder: Search...
+
+sidebar:
+  enable: true
+  menus:
+    -
+      name: Daily Pause
+      link: /daily-pause/
+      target: _self
+
+count:
+  enable: false
+
+comments: {}
+
+social: []
+'@
+Set-FileUtf8 $themeConfigPath $varaintConfig
+Set-FileUtf8 $siteThemeConfigPath $varaintConfig
+
+$articleContent = @'
+<!-- article -->
+<article>
+	<%- partial('_widget/title',{post: post,index: false,class_name: 'post-title'})%>
+	<%
+		var tocItems = [];
+		var html = post.content || '';
+		var headingPattern = /<h([1-4])\s+id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g;
+		var match;
+
+		function decodeEntities(text) {
+			return String(text)
+				.replace(/&amp;/g, '&')
+				.replace(/&lt;/g, '<')
+				.replace(/&gt;/g, '>')
+				.replace(/&quot;/g, '"')
+				.replace(/&#39;/g, "'");
+		}
+
+		while ((match = headingPattern.exec(html))) {
+			var text = match[3]
+				.replace(/<a[^>]*><\/a>/g, '')
+				.replace(/<[^>]+>/g, '')
+				.replace(/\s+/g, ' ')
+				.trim();
+
+			if (text) {
+				tocItems.push({
+					level: match[1],
+					id: match[2],
+					text: decodeEntities(text)
+				});
+			}
+		}
+	%>
+	<% if(tocItems.length > 1){ %>
+		<aside class="post-toc">
+			<div class="post-toc-title">&#30446;&#24405;</div>
+			<% tocItems.forEach(function(item){ %>
+				<a class="level-<%= item.level %>" href="#<%- item.id %>"><%= item.text %></a>
+			<% }) %>
+		</aside>
+	<% } %>
+	<div class='post-body mb'>
+		<%- post.content %>
+	</div>
+	<div class="meta split">
+		<%- partial('_widget/date',{post: post,class_name: 'post-date',date_format: null})%>
+	</div>
+</article>
+
+<!-- comments -->
+<%if(theme.comments && theme.comments.livere_uid){%>
+	<%- partial('post/livere_comment',
+	{
+	    key: post.slug,
+	    title: post.title,
+	    url: config.url+url_for(post.path)
+	}) %>
+<%} else if(theme.comments && theme.comments.disqus_username){%>
+	<%- partial('post/disqus-comment',
+	{
+	    key: post.slug,
+	    title: post.title,
+	    url: config.url+url_for(post.path)
+	}) %>
+<%}%>
+'@
+Set-FileUtf8 $articlePath $articleContent
+
 $themeScript = Get-Content -LiteralPath $scriptPath -Raw -Encoding UTF8
 $themeScript = [regex]::Replace(
   $themeScript,
@@ -95,14 +199,19 @@ foreach ($name in @("1.jpg", "2.jpg", "3.jpg")) {
   }
 }
 
-$footerContent = Get-Content -LiteralPath $footerPath -Raw -Encoding UTF8
-$footerContent = $footerContent -replace "(?m)^\s*<%- js\('js/google-code-prettify/prettify'\) %>\s*\r?\n", ""
-$footerContent = [regex]::Replace(
-  $footerContent,
-  "\s*<script type='text/javascript'>\s*//.*?prettyPrint\(\);\s*\}\);\s*</script>",
-  "",
-  [System.Text.RegularExpressions.RegexOptions]::Singleline
-)
+$footerContent = @'
+<footer class="footer" role="contentinfo">
+	<div class="wrapper wrapper--wide split split--responsive">
+		<span>&copy; <%= new Date().getFullYear() %> <%= config.author || config.title %></span>
+	</div>
+</footer>
+
+	<%- js('js/lib') %>
+	<%- js('js/module') %>
+	<%- js('js/script') %>
+	</body>
+</html>
+'@
 Set-FileUtf8 $footerPath $footerContent
 
 $enhancementScript = @'
