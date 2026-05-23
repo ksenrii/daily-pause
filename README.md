@@ -204,6 +204,46 @@ The easiest options are Vercel or Netlify:
 For GitHub Pages, remember that Vite apps deployed under a repository subpath may
 need a `base` setting in `vite.config.ts`.
 
+## Embed In A Hexo Blog
+
+Daily Pause can also be copied into a Hexo blog as a static sub-app. This project
+uses hash routing and relative asset paths, so it can live under:
+
+```txt
+/daily-pause/
+```
+
+Build the app first:
+
+```bash
+npm.cmd run build
+```
+
+Then run the helper script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\integrate-hexo.ps1 -BlogRoot "D:\blog\hexo-blog"
+```
+
+The script copies `dist/` into `source/daily-pause/` and updates Hexo config so
+Hexo does not render those app files.
+
+If your Hexo blog uses `hexo-theme-varaint`, this helper switches the theme and
+adds a MathJax injector for posts with LaTeX formulas:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\switch-hexo-varaint.ps1 -BlogRoot "D:\blog\hexo-blog"
+```
+
+After that, run these commands in the Hexo blog:
+
+```powershell
+cd "D:\blog\hexo-blog"
+npm run clean
+npm run build
+npm run server
+```
+
 ## Troubleshooting
 
 If changes do not appear after a rebuild, the PWA service worker may be serving

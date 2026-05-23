@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createHashRouter } from "react-router-dom";
 import AppShell from "./AppShell";
 import CalendarPage from "../pages/CalendarPage";
 import EntryDetailPage from "../pages/EntryDetailPage";
@@ -6,7 +6,7 @@ import HistoryPage from "../pages/HistoryPage";
 import SettingsPage from "../pages/SettingsPage";
 import TodayPage from "../pages/TodayPage";
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     element: <AppShell />,
     children: [
